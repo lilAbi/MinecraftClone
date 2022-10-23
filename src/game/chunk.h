@@ -48,6 +48,9 @@ namespace game{
         void BuildMesh();
 
     private:
+
+
+    private:
         //container for all the individual blocks in the chunk
         std::array<Block, CHUNK_SIZE_X*CHUNK_SIZE_Y*CHUNK_SIZE_Z> blocks{};
         //Mesh object
@@ -55,7 +58,7 @@ namespace game{
         //position of chunk in world
         glm::vec3 chunkPosition;
         //status of the chunk
-        ChunkStatus chunkStatus = ChunkStatus::Empty;
+        ChunkStatus chunkStatus = ChunkStatus::NotLoaded;
     };
 }
 

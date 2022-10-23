@@ -58,7 +58,7 @@ void game::BuildTerrainFromHeightMap(game::Chunk &chunk, TerrainNoise2DArray& he
             for(int x = 0; x < CHUNK_SIZE_X; x++){
                 //extract
                 int heightValue = static_cast<int>(100 + (heightMap[x + (z * CHUNK_SIZE_Z)] * 20));
-                auto& blockType = blocks[x + (z * CHUNK_SIZE_X) + (y*CHUNK_SIZE_Y)].blockType;
+                auto& blockType = blocks[x + (z * CHUNK_SIZE_X) + (y * CHUNK_SIZE_X * CHUNK_SIZE_Z)].blockType;
                 (y < heightValue) ? blockType = BlockType::Stone : blockType = BlockType::Air;
             }
         }

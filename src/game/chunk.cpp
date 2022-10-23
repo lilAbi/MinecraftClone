@@ -1,30 +1,33 @@
 
 #include "chunk.h"
 
-game::Chunk::Chunk(glm::vec3 position) : chunkPosition(position) {
+game::Chunk::Chunk(glm::vec3 position) : chunkPosition(position) {}
 
-}
-
-//construct mesh with greedy
+//construct mesh with greedy meshing algorithm
 void game::Chunk::BuildMesh() {
+    //container to hold the mesh
+    std::vector<gfx::Vertex> meshContainer;
+    meshContainer.reserve(1024);
 
+    //small lamda function to handle invalid block states
     auto GetBlockTypeAt = [&](int x, int y, int z) -> BlockType {
         if(x < CHUNK_SIZE_X && x >= 0){
             if(y < CHUNK_SIZE_Y && y >= 0){
                 if(z < CHUNK_SIZE_Z && z >= 0){
-                    return blocks[x + (z*CHUNK_SIZE_Z) + (y * CHUNK_SIZE_Z*CHUNK_SIZE_X)].blockType;
+                    return blocks[x + (z*CHUNK_SIZE_X) + (y * CHUNK_SIZE_Z*CHUNK_SIZE_X)].blockType;
                 }
             }
         }
         return BlockType::Air;
     };
 
+    //iterate through each face of the chunk making 2d slices
     for(int dimension{0}; dimension < Dimension::DimensionMaxSize; ++dimension){
         std::size_t reserveSize{0};
         int maxHeight{0};
         int maxLength{0};
         int maxWidth{0};
-
+        //calculate size of mask and length and width of current face
         switch (Dimension(dimension)){
             case Front:
             case Back:
@@ -48,20 +51,22 @@ void game::Chunk::BuildMesh() {
                 maxWidth = CHUNK_SIZE_Z;
                 break;
             case DimensionMaxSize:
+                maxHeight = 0;
+                maxLength = 0;
+                maxWidth = 0;
                 break;
         }
 
-        //break up into slices
+        //iterate through all the slices
         for(int slice{0}; slice < maxHeight; ++slice){
             std::vector<game::BlockType> slice2D(reserveSize);
 
             //scan a 2d slice and fill out a mask
             for(int width{0}; width < maxWidth; ++width){
                 for(int length{0}; length < maxLength; ++length){
-                    //access block in
                     game::BlockType currentBlock = BlockType::Air;
 
-                    //get block
+                    //get block type at position x,y,z
                     switch (Dimension(dimension)) {
                         case Front:
                             if(GetBlockTypeAt(length, width, slice-1) == BlockType::Air){
@@ -129,48 +134,150 @@ void game::Chunk::BuildMesh() {
                         ++meshHeight;
                     }
 
-                    //TODO: finish this
-                    glm::vec3 quad = chunkPosition;
+                    //vertex of quad
+                    glm::vec3 lowerLeft{0.0f,0.0f,0.0f};
+                    glm::vec3 lowerRight{0.0f,0.0f,0.0f};
+                    glm::vec3 upperLeft{0.0f,0.0f,0.0f};
+                    glm::vec3 upperRight{0.0f,0.0f,0.0f};
                     switch(Dimension(dimension)){
                         case Front:
-                            quad.x += static_cast<float>(x);
-                            quad.y += static_cast<float>(y);
-                            quad.z += static_cast<float>(slice);
+                            lowerLeft.x = static_cast<float>(x);
+                            lowerLeft.y = static_cast<float>(y);
+                            lowerLeft.z = static_cast<float>(slice);
+
+                            lowerRight.x = static_cast<float>(x) + static_cast<float>(meshLength);
+                            lowerRight.y = static_cast<float>(y);
+                            lowerRight.z = static_cast<float>(slice);
+
+                            upperLeft.x = static_cast<float>(x);
+                            upperLeft.y = static_cast<float>(y)+ static_cast<float>(meshHeight);
+                            upperLeft.z = static_cast<float>(slice);
+
+                            upperRight.x = static_cast<float>(x) + static_cast<float>(meshLength);
+                            upperRight.y = static_cast<float>(y)+ static_cast<float>(meshHeight);
+                            upperRight.z = static_cast<float>(slice);
                             break;
+
                         case Back:
-                            quad.x += static_cast<float>(x);
-                            quad.y += static_cast<float>(y);
-                            quad.z += static_cast<float>(slice)+1.0f;
+                            lowerLeft.x = static_cast<float>(x) + static_cast<float>(meshLength);
+                            lowerLeft.y = static_cast<float>(y);
+                            lowerLeft.z = static_cast<float>(slice)+1.0f;
+
+                            lowerRight.x = static_cast<float>(x);
+                            lowerRight.y = static_cast<float>(y);
+                            lowerRight.z = static_cast<float>(slice)+1.0f;
+
+                            upperLeft.x = static_cast<float>(x) + static_cast<float>(meshLength);
+                            upperLeft.y = static_cast<float>(y)+ static_cast<float>(meshHeight);
+                            upperLeft.z = static_cast<float>(slice)+1.0f;
+
+                            upperRight.x = static_cast<float>(x);
+                            upperRight.y = static_cast<float>(y)+ static_cast<float>(meshHeight);
+                            upperRight.z = static_cast<float>(slice)+1.0f;
+
                             break;
+
                         case Left:
-                            quad.x += static_cast<float>(x);
-                            quad.y += static_cast<float>(y);
-                            quad.z += static_cast<float>(slice);
+                            lowerLeft.x = static_cast<float>(slice);
+                            lowerLeft.y = static_cast<float>(y);
+                            lowerLeft.z = static_cast<float>(x) + static_cast<float>(meshLength);
+
+                            lowerRight.x = static_cast<float>(slice);
+                            lowerRight.y = static_cast<float>(y);
+                            lowerRight.z = static_cast<float>(x);
+
+                            upperLeft.x = static_cast<float>(slice);
+                            upperLeft.y = static_cast<float>(y) + static_cast<float>(meshHeight);
+                            upperLeft.z = static_cast<float>(x) + static_cast<float>(meshLength);
+
+                            upperRight.x = static_cast<float>(slice);
+                            upperRight.y = static_cast<float>(y) + static_cast<float>(meshHeight);
+                            upperRight.z = static_cast<float>(x);
                             break;
+
                         case Right:
+                            lowerLeft.x = static_cast<float>(slice) + 1.0f;
+                            lowerLeft.y = static_cast<float>(y);
+                            lowerLeft.z = static_cast<float>(x);
+
+                            lowerRight.x = static_cast<float>(slice) + 1.0f;
+                            lowerRight.y = static_cast<float>(y);
+                            lowerRight.z = static_cast<float>(x)+ static_cast<float>(meshLength);
+
+                            upperLeft.x = static_cast<float>(slice) + 1.0f;
+                            upperLeft.y = static_cast<float>(y) + static_cast<float>(meshHeight);
+                            upperLeft.z = static_cast<float>(x);
+
+                            upperRight.x = static_cast<float>(slice) + 1.0f;
+                            upperRight.y = static_cast<float>(y) + static_cast<float>(meshHeight);
+                            upperRight.z = static_cast<float>(x) + static_cast<float>(meshLength);
+
                             break;
+
                         case Top:
+                            lowerLeft.x = static_cast<float>(x);
+                            lowerLeft.y = static_cast<float>(slice) + 1.0f;
+                            lowerLeft.z = static_cast<float>(y);
+
+                            lowerRight.x = static_cast<float>(x) + static_cast<float>(meshLength);
+                            lowerRight.y = static_cast<float>(slice) + 1.0f;
+                            lowerRight.z = static_cast<float>(y);
+
+                            upperLeft.x = static_cast<float>(x);
+                            upperLeft.y = static_cast<float>(slice) + 1.0f;
+                            upperLeft.z = static_cast<float>(y) + static_cast<float>(meshHeight);
+
+                            upperRight.x = static_cast<float>(x) + + static_cast<float>(meshLength);
+                            upperRight.y = static_cast<float>(slice) + 1.0f;
+                            upperRight.z = static_cast<float>(y) + static_cast<float>(meshHeight);
                             break;
+
                         case Bottom:
+                            lowerLeft.x = static_cast<float>(x) + static_cast<float>(meshLength);
+                            lowerLeft.y = static_cast<float>(slice);
+                            lowerLeft.z = static_cast<float>(y);
+
+                            lowerRight.x = static_cast<float>(x);
+                            lowerRight.y = static_cast<float>(slice);
+                            lowerRight.z = static_cast<float>(y);
+
+                            upperRight.x = static_cast<float>(x);
+                            upperRight.y = static_cast<float>(slice);
+                            upperRight.z = static_cast<float>(y) + static_cast<float>(meshHeight);
+
+                            upperLeft.x = static_cast<float>(x) + + static_cast<float>(meshLength);
+                            upperLeft.y = static_cast<float>(slice);
+                            upperLeft.z = static_cast<float>(y) + static_cast<float>(meshHeight);
                             break;
+
                         case DimensionMaxSize:
                             break;
                     }
 
-
-
+                    //add quad
+                    meshContainer.push_back({lowerLeft});
+                    meshContainer.push_back({upperLeft});
+                    meshContainer.push_back({upperRight});
+                    meshContainer.push_back({upperLeft});
+                    meshContainer.push_back({upperRight});
+                    meshContainer.push_back({lowerRight});
 
                     //clear out created mesh
-                    for(int b = y; b < y+meshHeight; b++){
-
+                    for(int h{0}; h < meshHeight; ++h){
+                        for(int l{0}; l < meshLength; ++l){
+                            slice2D[(l+x) + ((h+y) * maxLength)] = BlockType::Air;
+                        }
                     }
 
                 }
-            }
-
+            }//end of the building mesh
 
         }//end of slice
 
     }//end of dimension
 
-}//end of function
+    //move data into mesh
+    chunkMesh.NewData(meshContainer);
+}
+
+//end of function

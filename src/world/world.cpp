@@ -14,23 +14,22 @@ game::World::World(gfx::Camera* cam): camera(cam) {
 
 //called every frame and update blocks/lighting/player
 void game::World::Update() {
-    std::vector<Chunk*> redrawList(GRID_SIZE_Y * GRID_SIZE_Y);
-    //redrawList.reserve(GRID_SIZE_Y * GRID_SIZE_Y);
+    std::vector<Chunk*> redrawList;
+    redrawList.reserve(GRID_SIZE_Y*GRID_SIZE_X);
 
     //render distance
 
     //what chunk is the player in
-    bool redraw;
-    for(int index{0}; index < (GRID_SIZE_X*GRID_SIZE_Y); ++index){
-        auto& chunk = worldChunksContainer[index];
 
+    bool redraw;
+    for(auto& chunk : worldChunksContainer){
         if(chunk.GetChunkStatus() != ChunkStatus::NotLoaded){
             //does the chunk contain blocks?
             if(chunk.GetChunkStatus() != ChunkStatus::Empty){
                 if(chunk.GetChunkStatus() == ChunkStatus::Modified){
                     //trigger redraw
                     redraw = true;
-                    redrawList[index] = &chunk;
+                    redrawList.push_back({&chunk});
 
                 } else if(chunk.GetChunkStatus() == ChunkStatus::Normal) {
                     //simulate chunk
@@ -48,22 +47,15 @@ void game::World::Update() {
             }
              */
         }
-
-
     }
+
 
     //mesh chunk
     if(redraw){
-        for(int index{0}; index < (GRID_SIZE_X*GRID_SIZE_Y); ++index){
-
-            //if needs redrawing
-            if(redrawList[index] != nullptr){
-                //MeshBlock
-            }
-
+        for(auto* chunk : redrawList){
+            chunk->BuildMesh();
+            chunk->SetChunkStatus(ChunkStatus::Normal);
         }
     }
-
-
 
 }
